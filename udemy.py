@@ -259,8 +259,3 @@ class UdemyPublic:
         requests.delete(
             'https://www.udemy.com/instructor-api/v1/courses/{}/questions/{}/'.format(course_id, pk),
             headers=self._auth)
-
-
-ud = UdemyPublic('dFJ0cbKPRBlyhYFKPtspBMmT1ZPuxyKW')
-for review in ud.get_all_reviews():
-    print(review.rating)
