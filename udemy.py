@@ -1,3 +1,5 @@
+import json
+
 import requests
 
 
@@ -31,6 +33,9 @@ class Question:
 
     def delete(self):
         self._parent.delete_question(self.course.id, self.id)
+
+    def post_question_response(self, body):
+        self._parent.post_question_response(self.course.id, self.id, body)
 
     def __eq__(self, other):
         if isinstance(other, Question):
@@ -70,6 +75,9 @@ class Course:
 
     def delete_question(self, pk):
         self._parent.delete_question(self.id, pk)
+
+    def post_question_response(self, question_id, body):
+        self._parent.post_question_response(self.id, question_id, body)
 
     def __eq__(self, other):
         if isinstance(other, Course):
@@ -121,7 +129,17 @@ class Reply:
 class Message:
     def __init__(self, message_dict, _parent):
         self._parent = _parent
-        pass
+        self.content = message_dict['content']
+        self.created = message_dict['created']
+        self.id = message_dict['id']
+        self.is_outgoing = message_dict['is_outgoing']
+        self.user = message_dict['user']
+
+    def __eq__(self, other):
+        if isinstance(other, User):
+            return self.id == other.id
+        else:
+            return False
 
 
 class User:
@@ -142,7 +160,21 @@ class User:
 class Thread:
     def __init__(self, thread_dict, _parent):
         self._parent = _parent
-        pass
+        self.created = thread_dict['created']
+        self.id = thread_dict['id']
+        self.is_read = thread_dict['is_read']
+        self.is_starred = thread_dict['is_starred']
+        self.last_message = thread_dict['last_message']
+        self.other_user = thread_dict['other_user']
+
+    def post_message(self, body):
+        self._parent.post_message(self.id, body)
+
+    def __eq__(self, other):
+        if isinstance(other, User):
+            return self.id == other.id
+        else:
+            return False
 
 
 class UdemyPublic:
@@ -232,11 +264,11 @@ class UdemyPublic:
             response = requests.get(response['next'], headers=self._auth).json()
 
     def get_course_questions(self, course_id, ordering=None):
+        response = requests.get("https://www.udemy.com/instructor-api/v1/courses/{}/questions/"
+                                "?fields%5Bquestion%5D=@all&fields%5Banswer%5D=@all&fields%5Bcourse%5D=@all&fields%5Buser%5D=@all"
+                                "&ordering={}".format(course_id, ordering),
+                                headers=self._auth).json()
         while True:
-            response = requests.get("https://www.udemy.com/instructor-api/v1/courses/{}/questions/"
-                                    "?fields%5Bquestion%5D=@all&fields%5Banswer%5D=@all&fields%5Bcourse%5D=@all&fields%5Buser%5D=@all"
-                                    "&ordering={}".format(course_id, ordering),
-                                    headers=self._auth).json()
             for result in response['results']:
                 yield Question(result, self._auth, self)
             if not response['next']:
@@ -244,11 +276,11 @@ class UdemyPublic:
             response = requests.get(response['next'], headers=self._auth).json()
 
     def get_course_replies(self, course_id, question_id, ordering=None):
+        response = requests.get("https://www.udemy.com/instructor-api/v1/courses/{}/questions/{}/replies/"
+                                "?fields%5Banswer%5D=@all&fields%5Buser%5D=@all"
+                                "&ordering={}".format(course_id, question_id, ordering),
+                                headers=self._auth).json()
         while True:
-            response = requests.get("https://www.udemy.com/instructor-api/v1/courses/{}/questions/{}/replies/"
-                                    "?fields%5Banswer%5D=@all&fields%5Buser%5D=@all"
-                                    "&ordering={}".format(course_id, question_id, ordering),
-                                    headers=self._auth).json()
             for result in response['results']:
                 yield Reply(result, self)
             if not response['next']:
@@ -259,3 +291,32 @@ class UdemyPublic:
         requests.delete(
             'https://www.udemy.com/instructor-api/v1/courses/{}/questions/{}/'.format(course_id, pk),
             headers=self._auth)
+
+    def get_message_threads(self, status=None, other_user=None):
+        if other_user:
+            response = requests.get("https://www.udemy.com/instructor-api/v1/message-threads/"
+                                    "?fields%5Bmessage_thread%5D=@all&fields%5Bmessage%5D=@all&fields%5Buser%5D=@all"
+                                    "&status={}"
+                                    "&other_user={}".format(status, other_user),
+                                    headers=self._auth).json()
+        else:
+            response = requests.get("https://www.udemy.com/instructor-api/v1/message-threads/"
+                                    "?fields%5Bmessage_thread%5D=@all&fields%5Bmessage%5D=@all&fields%5Buser%5D=@all"
+                                    "&status={}".format(status),
+                                    headers=self._auth).json()
+        while True:
+            for result in response['results']:
+                yield Thread(result, self)
+            if not response['next']:
+                break
+            response = requests.get(response['next'], headers=self._auth).json()
+
+    def post_question_response(self, course_id, question_id, body):
+        response = requests.post('https://www.udemy.com/instructor-api/v1/courses/{}/questions/{}/replies'.format(course_id, question_id),
+                                 headers=self._auth,
+                                 data=json.dumps(body))
+
+    def post_message(self, message_thread_id, body):
+        response = requests.post('https://www.udemy.com/instructor-api/v1/message-threads/{}/messages/'.format(message_thread_id),
+                                 headers=self._auth,
+                                 data=json.dumps(body))
