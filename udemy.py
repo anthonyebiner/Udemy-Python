@@ -73,11 +73,14 @@ class Course:
         for instructor in self.visible_instructors_raw:
             yield User(instructor, self._parent)
 
-    def get_questions(self):
-        yield from self._parent.get_course_questions(self.id)
+    def get_reviews(self, status='', stars='', ordering=''):
+        yield from self._parent.get_all_reviews(course=self.id, status=status, stars=stars, ordering=ordering)
 
-    def get_question_replies(self, question_id):
-        yield from self._parent.get_course_replies(self.id, question_id)
+    def get_questions(self, ordering=''):
+        yield from self._parent.get_course_questions(self.id, ordering=ordering)
+
+    def get_question_replies(self, question_id, ordering=''):
+        yield from self._parent.get_course_replies(self.id, question_id, ordering=ordering)
 
     def delete_question(self, pk):
         self._parent.delete_question(self.id, pk)
@@ -99,7 +102,7 @@ class Course:
 
 
 class Review:
-    def __init__(self, review_dict, _auth, _parent):
+    def __init__(self, review_dict, _parent):
         self._parent = _parent
         self._raw = review_dict
         self.id = review_dict['id']
@@ -113,7 +116,12 @@ class Review:
             self.response = None
         self.user = User(review_dict['user'], _parent)
         self.user_modified = review_dict['user_modified']
-        self._auth = _auth
+
+    def __eq__(self, other):
+        if isinstance(other, Review):
+            return self.id == other.id
+        else:
+            return False
 
 
 class Response:
@@ -126,6 +134,12 @@ class Response:
         self.user = User(response_dict['user'], _parent)
         self.id = response_dict['id']
 
+    def __eq__(self, other):
+        if isinstance(other, Response):
+            return self.id == other.id
+        else:
+            return False
+
 
 class Reply:
     def __init__(self, reply_dict, _parent):
@@ -134,11 +148,20 @@ class Reply:
         self.created = reply_dict['created']
         self.last_activity = reply_dict['last_activity']
         self.user = User(reply_dict['user'], _parent)
-        self.is_top_answer = reply_dict['is_top_answer']
+        if reply_dict['is_top_answer']:
+            self.is_top_answer = reply_dict['is_top_answer']
+        else:
+            self.is_top_answer = False
         self.body = reply_dict['body']
         self.is_upvoted = reply_dict['is_upvoted']
         self.num_upvotes = reply_dict['num_upvotes']
         self.id = reply_dict['id']
+
+    def __eq__(self, other):
+        if isinstance(other, Reply):
+            return self.id == other.id
+        else:
+            return False
 
 
 class Message:
@@ -149,10 +172,10 @@ class Message:
         self.created = message_dict['created']
         self.id = message_dict['id']
         self.is_outgoing = message_dict['is_outgoing']
-        self.user = message_dict['user']
+        self.user = User(message_dict['user'], _parent)
 
     def __eq__(self, other):
-        if isinstance(other, User):
+        if isinstance(other, Message):
             return self.id == other.id
         else:
             return False
@@ -182,8 +205,8 @@ class Thread:
         self.id = thread_dict['id']
         self.is_read = thread_dict['is_read']
         self.is_starred = thread_dict['is_starred']
-        self.last_message = thread_dict['last_message']
-        self.other_user = thread_dict['other_user']
+        self.last_message = Message(thread_dict['last_message'], _parent)
+        self.other_user = User(thread_dict['other_user'], _parent)
 
     def post_message(self, body):
         self._parent.post_message(self.id, body)
@@ -191,8 +214,11 @@ class Thread:
     def update_thread_detail(self, is_read=None, is_starred=None, is_deleted=None, is_muted=None):
         self._parent.update_thread_detail(self.id, is_read, is_starred, is_deleted, is_muted)
 
+    def get_messages(self):
+        yield from self._parent.get_messages(self.id)
+
     def __eq__(self, other):
-        if isinstance(other, User):
+        if isinstance(other, Thread):
             return self.id == other.id
         else:
             return False
@@ -208,7 +234,7 @@ class UdemyPublic:
             "Authorization": "bearer " + client_id
         }
 
-    def get_all_courses(self, ordering=None, student=None):
+    def get_all_courses(self, ordering='', student=''):
         if not student:
             response = requests.get(
                 "https://www.udemy.com/instructor-api/v1/taught-courses/courses/"
@@ -229,7 +255,7 @@ class UdemyPublic:
                 break
             response = requests.get(response['next'], headers=self._auth).json()
 
-    def get_all_questions(self, status=None, course=None, ordering=None):
+    def get_all_questions(self, status='', course='', ordering=''):
         if not course:
             response = requests.get(
                 "https://www.udemy.com/instructor-api/v1/taught-courses/questions/"
@@ -252,7 +278,7 @@ class UdemyPublic:
                 break
             response = requests.get(response['next'], headers=self._auth).json()
 
-    def get_all_reviews(self, status=None, course=None, stars=None, ordering=None):
+    def get_all_reviews(self, status='', course='', stars='', ordering=''):
         if stars and isinstance(stars, list):
             string = ""
             for star in stars:
@@ -279,12 +305,12 @@ class UdemyPublic:
                 headers=self._auth).json()
         while True:
             for result in response['results']:
-                yield Review(result, self._auth, self)
+                yield Review(result, self)
             if not response['next']:
                 break
             response = requests.get(response['next'], headers=self._auth).json()
 
-    def get_course_questions(self, course_id, ordering=None):
+    def get_course_questions(self, course_id, ordering=''):
         response = requests.get("https://www.udemy.com/instructor-api/v1/courses/{}/questions/"
                                 "?fields%5Bquestion%5D=@all&fields%5Banswer%5D=@all&fields%5Bcourse%5D=@all&fields%5Buser%5D=@all"
                                 "&ordering={}".format(course_id, ordering),
@@ -296,7 +322,7 @@ class UdemyPublic:
                 break
             response = requests.get(response['next'], headers=self._auth).json()
 
-    def get_course_replies(self, course_id, question_id, ordering=None):
+    def get_course_replies(self, course_id, question_id, ordering=''):
         response = requests.get("https://www.udemy.com/instructor-api/v1/courses/{}/questions/{}/replies/"
                                 "?fields%5Banswer%5D=@all&fields%5Buser%5D=@all"
                                 "&ordering={}".format(course_id, question_id, ordering),
@@ -313,7 +339,7 @@ class UdemyPublic:
             'https://www.udemy.com/instructor-api/v1/courses/{}/questions/{}/'.format(course_id, pk),
             headers=self._auth)
 
-    def get_message_threads(self, status=None, other_user=None):
+    def get_message_threads(self, status='', other_user=''):
         if other_user:
             response = requests.get("https://www.udemy.com/instructor-api/v1/message-threads/"
                                     "?fields%5Bmessage_thread%5D=@all&fields%5Bmessage%5D=@all&fields%5Buser%5D=@all"
@@ -328,6 +354,17 @@ class UdemyPublic:
         while True:
             for result in response['results']:
                 yield Thread(result, self)
+            if not response['next']:
+                break
+            response = requests.get(response['next'], headers=self._auth).json()
+
+    def get_messages(self, message_thread_id):
+        response = requests.get("https://www.udemy.com/instructor-api/v1/message-threads/{}/messages/"
+                                "?fields%5Bmessage%5D=@all&fields%5Buser%5D=@all".format(message_thread_id),
+                                headers=self._auth).json()
+        while True:
+            for result in response['results']:
+                yield Message(result, self)
             if not response['next']:
                 break
             response = requests.get(response['next'], headers=self._auth).json()
