@@ -4,10 +4,11 @@ import requests
 
 
 class Question:
-    def __init__(self, question_dict, _auth, _parent):
+    def __init__(self, question_dict, _parent):
         self._parent = _parent
+        self._raw = question_dict
         self.body = question_dict['body']
-        self.course = Course(question_dict['course'], _auth, _parent)
+        self.course = Course(question_dict['course'], _parent)
         self.created = question_dict['created']
         self.id = question_dict['id']
         self.is_instructor = question_dict['is_instructor']
@@ -24,7 +25,6 @@ class Question:
         self.reply_raw = question_dict['replies']
         self.title = question_dict['title']
         self.user = User(question_dict['user'], _parent)
-        self._auth = _auth
 
     @property
     def replies(self):
@@ -37,6 +37,12 @@ class Question:
     def post_question_response(self, body):
         self._parent.post_question_response(self.course.id, self.id, body)
 
+    def update_question(self, read):
+        self._parent.update_question(self.course.id, self.id, read)
+
+    def update_question_reply(self, response_id, is_top_answer=None, body=None):
+        self._parent.update_question_reply(self.course.id, self.id, response_id, is_top_answer, body)
+
     def __eq__(self, other):
         if isinstance(other, Question):
             return self.id == other.id
@@ -45,9 +51,9 @@ class Question:
 
 
 class Course:
-    def __init__(self, course_dict, _auth, _parent):
+    def __init__(self, course_dict, _parent):
         self._parent = _parent
-        self._auth = _auth
+        self._raw = course_dict
         self.created = course_dict['created']
         self.description = course_dict['description']
         self.headline = course_dict['headline']
@@ -79,6 +85,12 @@ class Course:
     def post_question_response(self, question_id, body):
         self._parent.post_question_response(self.id, question_id, body)
 
+    def update_question(self, question_id, body):
+        self._parent.update_question(self.id, question_id, body)
+
+    def update_question_reply(self, question_id, response_id, is_top_answer=None, body=None):
+        self._parent.update_question_reply(self.id, question_id, response_id, is_top_answer, body)
+
     def __eq__(self, other):
         if isinstance(other, Course):
             return self.id == other.id
@@ -89,9 +101,10 @@ class Course:
 class Review:
     def __init__(self, review_dict, _auth, _parent):
         self._parent = _parent
+        self._raw = review_dict
         self.id = review_dict['id']
         self.content = review_dict['content']
-        self.course = Course(review_dict['course'], _auth, _parent)
+        self.course = Course(review_dict['course'], _parent)
         self.created = review_dict['created']
         self.rating = review_dict['rating']
         try:
@@ -106,6 +119,7 @@ class Review:
 class Response:
     def __init__(self, response_dict, _parent):
         self._parent = _parent
+        self._raw = response_dict
         self.content = response_dict['content']
         self.created = response_dict['created']
         self.modified = response_dict['modified']
@@ -116,6 +130,7 @@ class Response:
 class Reply:
     def __init__(self, reply_dict, _parent):
         self._parent = _parent
+        self._raw = reply_dict
         self.created = reply_dict['created']
         self.last_activity = reply_dict['last_activity']
         self.user = User(reply_dict['user'], _parent)
@@ -129,6 +144,7 @@ class Reply:
 class Message:
     def __init__(self, message_dict, _parent):
         self._parent = _parent
+        self._raw = message_dict
         self.content = message_dict['content']
         self.created = message_dict['created']
         self.id = message_dict['id']
@@ -145,6 +161,7 @@ class Message:
 class User:
     def __init__(self, user_dict, _parent):
         self._parent = _parent
+        self._raw = user_dict
         self.id = user_dict['id']
         self.locale = user_dict['locale']
         self.name = user_dict['name']
@@ -160,6 +177,7 @@ class User:
 class Thread:
     def __init__(self, thread_dict, _parent):
         self._parent = _parent
+        self._raw = thread_dict
         self.created = thread_dict['created']
         self.id = thread_dict['id']
         self.is_read = thread_dict['is_read']
@@ -169,6 +187,9 @@ class Thread:
 
     def post_message(self, body):
         self._parent.post_message(self.id, body)
+
+    def update_thread_detail(self, is_read=None, is_starred=None, is_deleted=None, is_muted=None):
+        self._parent.update_thread_detail(self.id, is_read, is_starred, is_deleted, is_muted)
 
     def __eq__(self, other):
         if isinstance(other, User):
@@ -203,7 +224,7 @@ class UdemyPublic:
                 headers=self._auth).json()
         while True:
             for result in response['results']:
-                yield Course(result, self._auth, self)
+                yield Course(result, self)
             if not response['next']:
                 break
             response = requests.get(response['next'], headers=self._auth).json()
@@ -226,7 +247,7 @@ class UdemyPublic:
                 headers=self._auth).json()
         while True:
             for result in response['results']:
-                yield Question(result, self._auth, self)
+                yield Question(result, self)
             if not response['next']:
                 break
             response = requests.get(response['next'], headers=self._auth).json()
@@ -270,7 +291,7 @@ class UdemyPublic:
                                 headers=self._auth).json()
         while True:
             for result in response['results']:
-                yield Question(result, self._auth, self)
+                yield Question(result, self)
             if not response['next']:
                 break
             response = requests.get(response['next'], headers=self._auth).json()
@@ -320,3 +341,36 @@ class UdemyPublic:
         response = requests.post('https://www.udemy.com/instructor-api/v1/message-threads/{}/messages/'.format(message_thread_id),
                                  headers=self._auth,
                                  data=json.dumps(body))
+
+    def update_question(self, course_id, question_id, read):
+        data = {'is_read': read}
+        response = requests.put(
+            "https://www.udemy.com/instructor-api/v1/courses/{}/questions/{}/".format(course_id, question_id),
+            headers=self._auth,
+            data=json.dumps(data))
+
+    def update_question_reply(self, course_id, question_id, response_id, is_top_answer=None, body=None):
+        data = {}
+        if is_top_answer is not None:
+            data['is_top_answer'] = is_top_answer
+        if body is not None:
+            data['body'] = body
+        response = requests.put(
+            "https://www.udemy.com/instructor-api/v1/courses/{}/questions/{}/replies/{}/".format(course_id, question_id, response_id),
+            headers=self._auth,
+            data=json.dumps(data))
+
+    def update_thread_detail(self, thread_id, is_read=None, is_starred=None, is_deleted=None, is_muted=None):
+        data = {}
+        if is_read is not None:
+            data['is_read'] = is_read
+        if is_starred is not None:
+            data['is_starred'] = is_starred
+        if is_deleted is not None:
+            data['is_deleted'] = is_deleted
+        if is_muted is not None:
+            data['is_muted'] = is_muted
+        response = requests.put(
+            "https://www.udemy.com/instructor-api/v1/message-threads/{}/".format(thread_id),
+            headers=self._auth,
+            data=json.dumps(data))
