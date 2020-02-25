@@ -1,6 +1,17 @@
 import json
 
 import requests
+import auths
+
+
+class UdemyError(Exception):
+    @staticmethod
+    def generateError(msg, response):
+        error = '\n' + msg + '\n'
+        error += str(response) + '\n'
+        error += str(response.text) + '\n'
+        error += str(response.url)
+        return error
 
 
 class Question:
@@ -73,7 +84,9 @@ class Course:
         for instructor in self.visible_instructors_raw:
             yield User(instructor, self._parent)
 
-    def get_reviews(self, status='', stars='', ordering=''):
+    def get_reviews(self, status='', stars=None, ordering=''):
+        if stars is None:
+            stars = []
         yield from self._parent.get_all_reviews(course=self.id, status=status, stars=stars, ordering=ordering)
 
     def get_questions(self, ordering=''):
@@ -241,19 +254,21 @@ class UdemyPublic:
                 "?fields%5Bcourse%5D=@all&fields%5Buser%5D=@all"
                 "&student={}"
                 "&ordering={}".format(student, ordering),
-                headers=self._auth).json()
+                headers=self._auth)
         else:
             response = requests.get(
                 "https://www.udemy.com/instructor-api/v1/taught-courses/courses/"
                 "?fields%5Bcourse%5D=@all&fields%5Buser%5D=@all"
                 "&ordering={}".format(ordering),
-                headers=self._auth).json()
+                headers=self._auth)
         while True:
-            for result in response['results']:
+            if response.status_code != 200:
+                raise UdemyError(UdemyError.generateError('Could not get courses', response))
+            for result in response.json()['results']:
                 yield Course(result, self)
-            if not response['next']:
+            if not response.json()['next']:
                 break
-            response = requests.get(response['next'], headers=self._auth).json()
+            response = requests.get(response.json()['next'], headers=self._auth)
 
     def get_all_questions(self, status='', course='', ordering=''):
         if not course:
@@ -262,7 +277,7 @@ class UdemyPublic:
                 "?status={}"
                 "&fields%5Bquestion%5D=@all&fields%5Banswer%5D=@all&fields%5Bcourse%5D=@all&fields%5Buser%5D=@all"
                 "&ordering={}".format(status, ordering),
-                headers=self._auth).json()
+                headers=self._auth)
         else:
             response = requests.get(
                 "https://www.udemy.com/instructor-api/v1/taught-courses/questions/"
@@ -270,15 +285,19 @@ class UdemyPublic:
                 "&course={}"
                 "&fields%5Bquestion%5D=@all&fields%5Banswer%5D=@all&fields%5Bcourse%5D=@all&fields%5Buser%5D=@all"
                 "&ordering={}".format(status, course, ordering),
-                headers=self._auth).json()
+                headers=self._auth)
         while True:
-            for result in response['results']:
+            if response.status_code != 200:
+                raise UdemyError(UdemyError.generateError('Could not get questions', response))
+            for result in response.json()['results']:
                 yield Question(result, self)
-            if not response['next']:
+            if not response.json()['next']:
                 break
-            response = requests.get(response['next'], headers=self._auth).json()
+            response = requests.get(response.json()['next'], headers=self._auth)
 
-    def get_all_reviews(self, status='', course='', stars='', ordering=''):
+    def get_all_reviews(self, status='', course='', stars=None, ordering=''):
+        if stars is None:
+            stars = []
         if stars and isinstance(stars, list):
             string = ""
             for star in stars:
@@ -293,7 +312,7 @@ class UdemyPublic:
                 "&star={}"
                 "&fields%5Bcourse_review%5D=@all&fields%5Bcourse%5D=@all&fields%5Buser%5D=@all"
                 "&ordering={}".format(status, stars, ordering),
-                headers=self._auth).json()
+                headers=self._auth)
         else:
             response = requests.get(
                 "https://www.udemy.com/instructor-api/v1/taught-courses/reviews/"
@@ -302,42 +321,43 @@ class UdemyPublic:
                 "&star={}"
                 "&fields%5Bcourse_review%5D=@all&fields%5Bcourse%5D=@all&fields%5Buser%5D=@all"
                 "&ordering={}".format(status, course, stars, ordering),
-                headers=self._auth).json()
+                headers=self._auth)
         while True:
-            for result in response['results']:
+            if response.status_code != 200:
+                raise UdemyError(UdemyError.generateError('Could not get reviews', response))
+            for result in response.json()['results']:
                 yield Review(result, self)
-            if not response['next']:
+            if not response.json()['next']:
                 break
-            response = requests.get(response['next'], headers=self._auth).json()
+            response = requests.get(response.json()['next'], headers=self._auth)
 
     def get_course_questions(self, course_id, ordering=''):
         response = requests.get("https://www.udemy.com/instructor-api/v1/courses/{}/questions/"
                                 "?fields%5Bquestion%5D=@all&fields%5Banswer%5D=@all&fields%5Bcourse%5D=@all&fields%5Buser%5D=@all"
                                 "&ordering={}".format(course_id, ordering),
-                                headers=self._auth).json()
+                                headers=self._auth)
         while True:
-            for result in response['results']:
+            if response.status_code != 200:
+                raise UdemyError(UdemyError.generateError('Could not get questions', response))
+            for result in response.json()['results']:
                 yield Question(result, self)
-            if not response['next']:
+            if not response.json()['next']:
                 break
-            response = requests.get(response['next'], headers=self._auth).json()
+            response = requests.get(response.json()['next'], headers=self._auth)
 
     def get_course_replies(self, course_id, question_id, ordering=''):
         response = requests.get("https://www.udemy.com/instructor-api/v1/courses/{}/questions/{}/replies/"
                                 "?fields%5Banswer%5D=@all&fields%5Buser%5D=@all"
                                 "&ordering={}".format(course_id, question_id, ordering),
-                                headers=self._auth).json()
+                                headers=self._auth)
         while True:
-            for result in response['results']:
+            if response.status_code != 200:
+                raise UdemyError(UdemyError.generateError('Could not get replies', response))
+            for result in response.json()['results']:
                 yield Reply(result, self)
-            if not response['next']:
+            if not response.json()['next']:
                 break
-            response = requests.get(response['next'], headers=self._auth).json()
-
-    def delete_question(self, course_id, pk):
-        requests.delete(
-            'https://www.udemy.com/instructor-api/v1/courses/{}/questions/{}/'.format(course_id, pk),
-            headers=self._auth)
+            response = requests.get(response.json()['next'], headers=self._auth)
 
     def get_message_threads(self, status='', other_user=''):
         if other_user:
@@ -345,46 +365,72 @@ class UdemyPublic:
                                     "?fields%5Bmessage_thread%5D=@all&fields%5Bmessage%5D=@all&fields%5Buser%5D=@all"
                                     "&status={}"
                                     "&other_user={}".format(status, other_user),
-                                    headers=self._auth).json()
+                                    headers=self._auth)
         else:
             response = requests.get("https://www.udemy.com/instructor-api/v1/message-threads/"
                                     "?fields%5Bmessage_thread%5D=@all&fields%5Bmessage%5D=@all&fields%5Buser%5D=@all"
                                     "&status={}".format(status),
-                                    headers=self._auth).json()
+                                    headers=self._auth)
         while True:
-            for result in response['results']:
+            if response.status_code != 200:
+                raise UdemyError(UdemyError.generateError('Could not get threads', response))
+            for result in response.json()['results']:
                 yield Thread(result, self)
-            if not response['next']:
+            if not response.json()['next']:
                 break
-            response = requests.get(response['next'], headers=self._auth).json()
+            response = requests.get(response.json()['next'], headers=self._auth)
 
     def get_messages(self, message_thread_id):
         response = requests.get("https://www.udemy.com/instructor-api/v1/message-threads/{}/messages/"
                                 "?fields%5Bmessage%5D=@all&fields%5Buser%5D=@all".format(message_thread_id),
-                                headers=self._auth).json()
+                                headers=self._auth)
         while True:
-            for result in response['results']:
+            if response.status_code != 200:
+                raise UdemyError(UdemyError.generateError('Could not get messages', response))
+            for result in response.json()['results']:
                 yield Message(result, self)
-            if not response['next']:
+            if not response.json()['next']:
                 break
-            response = requests.get(response['next'], headers=self._auth).json()
+            response = requests.get(response.json()['next'], headers=self._auth)
 
-    def post_question_response(self, course_id, question_id, body):
+    def delete_question(self, course_id, pk):
+        response = requests.delete(
+            "https://www.udemy.com/instructor-api/v1/courses/{}/questions/{}/"
+            "?fields%5Bquestion%5D=@all&fields%5Banswer%5D=@all&fields%5Bcourse%5D=@all&fields%5Buser%5D=@all".format(course_id, pk),
+            headers=self._auth)
+        if response.status_code != 200:
+            raise UdemyError(UdemyError.generateError('Could not delete question', response))
+        return Question(response.json(), self)
+
+    def post_question_reply(self, course_id, question_id, body):
+        data = {"body": body}
         response = requests.post('https://www.udemy.com/instructor-api/v1/courses/{}/questions/{}/replies'.format(course_id, question_id),
                                  headers=self._auth,
-                                 data=json.dumps(body))
+                                 data=json.dumps(data))
+        if response.status_code != 201:
+            raise UdemyError(UdemyError.generateError('Could not post reply', response))
+        return Reply(response.json(), self)
 
     def post_message(self, message_thread_id, body):
-        response = requests.post('https://www.udemy.com/instructor-api/v1/message-threads/{}/messages/'.format(message_thread_id),
+        data = {"body": body}
+        response = requests.post("https://www.udemy.com/instructor-api/v1/message-threads/{}/messages/"
+                                 "?fields%5Bmessage%5D=@all&fields%5Buser%5D=@all".format(message_thread_id),
                                  headers=self._auth,
-                                 data=json.dumps(body))
+                                 data=json.dumps(data))
+        if response.status_code != 201:
+            raise UdemyError(UdemyError.generateError('Could not post message', response))
+        return Message(response.json(), self)
 
     def update_question(self, course_id, question_id, read):
         data = {'is_read': read}
         response = requests.put(
-            "https://www.udemy.com/instructor-api/v1/courses/{}/questions/{}/".format(course_id, question_id),
+            "https://www.udemy.com/instructor-api/v1/courses/{}/questions/{}/"
+            "?fields%5Bquestion%5D=@all&fields%5Banswer%5D=@all&fields%5Bcourse%5D=@all&fields%5Buser%5D=@all".format(course_id, question_id),
             headers=self._auth,
             data=json.dumps(data))
+        if response.status_code != 200:
+            raise UdemyError(UdemyError.generateError('Could not update question', response))
+        return Question(response.json(), self)
 
     def update_question_reply(self, course_id, question_id, response_id, is_top_answer=None, body=None):
         data = {}
@@ -393,9 +439,13 @@ class UdemyPublic:
         if body is not None:
             data['body'] = body
         response = requests.put(
-            "https://www.udemy.com/instructor-api/v1/courses/{}/questions/{}/replies/{}/".format(course_id, question_id, response_id),
+            "https://www.udemy.com/instructor-api/v1/courses/{}/questions/{}/replies/{}/"
+            "?fields%5Banswer%5D=@all&fields%5Buser%5D=@all".format(course_id, question_id, response_id),
             headers=self._auth,
             data=json.dumps(data))
+        if response.status_code != 200:
+            raise UdemyError(UdemyError.generateError('Could not update reply', response))
+        return Reply(response.json(), self)
 
     def update_thread_detail(self, thread_id, is_read=None, is_starred=None, is_deleted=None, is_muted=None):
         data = {}
@@ -408,6 +458,10 @@ class UdemyPublic:
         if is_muted is not None:
             data['is_muted'] = is_muted
         response = requests.put(
-            "https://www.udemy.com/instructor-api/v1/message-threads/{}/".format(thread_id),
+            "https://www.udemy.com/instructor-api/v1/message-threads/{}/"
+            "?fields%5Bmessage_thread%5D=@all&fields%5Bmessage%5D=@all&fields%5Buser%5D=@all".format(thread_id),
             headers=self._auth,
             data=json.dumps(data))
+        if response.status_code != 200:
+            raise UdemyError(UdemyError.generateError('Could not update thread', response))
+        return Thread(response.json(), self)
