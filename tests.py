@@ -106,7 +106,7 @@ class MyTestCase(unittest.TestCase):
         self.assertIsNotNone(questions)
         num = 0
         for question in questions:
-            if num > 10:
+            if num > 20:
                 break
             self.question_test(question)
             for reply in question.replies:
@@ -119,11 +119,11 @@ class MyTestCase(unittest.TestCase):
         self.assertIsNotNone(courses)
         num = 0
         for course in courses:
-            if num > 5:
+            if num > 10:
                 break
             num2 = 0
             for question in course.get_questions():
-                if num2 > 5:
+                if num2 > 20:
                     break
                 self.question_test(question)
                 num2 += 1
