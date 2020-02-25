@@ -55,9 +55,10 @@ unchanged, however a few were changed to more sensible alternatives, such as the
 'body' to 'content' in order to stay consistent with the other models. 
 
 ## TODO
+* Make additional helper functions
+* Add bad argument errors
 * Write docs
 * Add C O M M E N T S
-* Make additional helper functions
 * Add Affiliate API
 * Add private API?
 * Figure out the meaning of Life
