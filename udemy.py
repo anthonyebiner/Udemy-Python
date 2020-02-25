@@ -18,7 +18,7 @@ class Question:
     def __init__(self, question_dict, _parent):
         self._parent = _parent
         self._raw = question_dict
-        self.body = question_dict['body']
+        self.content = question_dict['body']
         self.course = Course(question_dict['course'], _parent)
         self.created = question_dict['created']
         self.id = question_dict['id']
@@ -93,7 +93,7 @@ class Course:
         yield from self._parent.get_course_questions(self.id, ordering=ordering)
 
     def get_question_replies(self, question_id, ordering=''):
-        yield from self._parent.get_course_replies(self.id, question_id, ordering=ordering)
+        yield from self._parent.get_question_replies(self.id, question_id, ordering=ordering)
 
     def delete_question(self, pk):
         self._parent.delete_question(self.id, pk)
@@ -165,7 +165,7 @@ class Reply:
             self.is_top_answer = reply_dict['is_top_answer']
         else:
             self.is_top_answer = False
-        self.body = reply_dict['body']
+        self.content = reply_dict['body']
         self.is_upvoted = reply_dict['is_upvoted']
         self.num_upvotes = reply_dict['num_upvotes']
         self.id = reply_dict['id']
@@ -237,7 +237,7 @@ class Thread:
             return False
 
 
-class UdemyPublic:
+class Udemy:
     def __init__(self, client_id, client_secret=None):
         self.client_id = client_id
         self.client_secret = client_secret
@@ -345,7 +345,7 @@ class UdemyPublic:
                 break
             response = requests.get(response.json()['next'], headers=self._auth)
 
-    def get_course_replies(self, course_id, question_id, ordering=''):
+    def get_question_replies(self, course_id, question_id, ordering=''):
         response = requests.get("https://www.udemy.com/instructor-api/v1/courses/{}/questions/{}/replies/"
                                 "?fields%5Banswer%5D=@all&fields%5Buser%5D=@all"
                                 "&ordering={}".format(course_id, question_id, ordering),

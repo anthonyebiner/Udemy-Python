@@ -30,7 +30,7 @@ class MyTestCase(unittest.TestCase):
         self.assertIsInstance(review.user_modified, str)
 
     def question_test(self, question):
-        self.assertIsInstance(question.body, str)
+        self.assertIsInstance(question.content, str)
         self.assertIsInstance(question.course, udemy.Course)
         self.assertIsInstance(question.created, str)
         self.assertIsInstance(question.id, str)
@@ -54,7 +54,7 @@ class MyTestCase(unittest.TestCase):
         self.assertIsInstance(reply.last_activity, str)
         self.assertIsInstance(reply.user, udemy.User)
         self.assertIs(reply.is_top_answer, False)
-        self.assertIsInstance(reply.body, str)
+        self.assertIsInstance(reply.content, str)
         self.assertIsInstance(reply.is_upvoted, bool)
         self.assertIsInstance(reply.num_upvotes, int)
         self.assertIsInstance(reply.id, str)
@@ -75,7 +75,7 @@ class MyTestCase(unittest.TestCase):
         self.assertIsInstance(message.user, udemy.User)
 
     def test_courses(self):
-        api = udemy.UdemyPublic(auths.udemy_api)
+        api = udemy.Udemy(auths.udemy_api)
         courses = api.get_all_courses()
         self.assertIsNotNone(courses)
         num = 0
@@ -87,7 +87,7 @@ class MyTestCase(unittest.TestCase):
             num += 1
 
     def test_all_reviews(self):
-        api = udemy.UdemyPublic(auths.udemy_api)
+        api = udemy.Udemy(auths.udemy_api)
         reviews = api.get_all_reviews()
         self.assertIsNotNone(reviews)
         num = 0
@@ -101,7 +101,7 @@ class MyTestCase(unittest.TestCase):
         pass
 
     def test_questions(self):
-        api = udemy.UdemyPublic(auths.udemy_api)
+        api = udemy.Udemy(auths.udemy_api)
         questions = api.get_all_questions(status='unanswered', ordering='oldest')
         self.assertIsNotNone(questions)
         num = 0
@@ -114,7 +114,7 @@ class MyTestCase(unittest.TestCase):
             num += 1
 
     def test_course_questions(self):
-        api = udemy.UdemyPublic(auths.udemy_api)
+        api = udemy.Udemy(auths.udemy_api)
         courses = api.get_all_courses(ordering='popularity')
         self.assertIsNotNone(courses)
         num = 0
@@ -130,7 +130,7 @@ class MyTestCase(unittest.TestCase):
             num += 1
 
     def test_messages(self):
-        api = udemy.UdemyPublic(auths.udemy_api)
+        api = udemy.Udemy(auths.udemy_api)
         threads = api.get_message_threads()
         self.assertIsNotNone(threads)
         for thread in threads:
