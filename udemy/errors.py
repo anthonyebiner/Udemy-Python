@@ -1,4 +1,4 @@
-class UdemyError(Exception):
+class UdemyResponseError(Exception):
     @staticmethod
     def generateError(msg, response):
         error = '\n' + msg + '\n'
@@ -6,3 +6,7 @@ class UdemyError(Exception):
         error += str(response.text) + '\n'
         error += str(response.url)
         return error
+
+
+class UdemyArgumentsError(Exception):
+    pass

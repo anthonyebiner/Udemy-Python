@@ -107,7 +107,7 @@ class Review:
         self.content = review_dict['content']
         self.course = Course(review_dict['course'], _parent)
         self.created = review_dict['created']
-        self.rating = review_dict['rating']
+        self.stars = review_dict['rating']
         try:
             self.response = Response(review_dict['response'], _parent)
         except TypeError:

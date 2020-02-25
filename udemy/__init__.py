@@ -11,4 +11,4 @@ from udemy.models import (
     Response
 )
 
-from udemy.errors import UdemyError
+from udemy.errors import UdemyResponseError

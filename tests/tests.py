@@ -1,5 +1,6 @@
 import unittest
 import udemy
+import auths
 
 
 class MyTestCase(unittest.TestCase):
@@ -24,7 +25,7 @@ class MyTestCase(unittest.TestCase):
         self.assertIsInstance(review.content, str)
         self.assertIsInstance(review.course, udemy.Course)
         self.assertIsInstance(review.created, str)
-        self.assertNotIsInstance(review.rating, str)
+        self.assertNotIsInstance(review.stars, str)
         self.assertIsInstance(review.user, udemy.User)
         self.assertIsInstance(review.user_modified, str)
 
@@ -74,7 +75,7 @@ class MyTestCase(unittest.TestCase):
         self.assertIsInstance(message.user, udemy.User)
 
     def test_courses(self):
-        api = udemy.Udemy(auths.udemy_api)
+        api = udemy.Api(auths.udemy_api)
         courses = api.get_all_courses()
         self.assertIsNotNone(courses)
         num = 0
@@ -86,7 +87,7 @@ class MyTestCase(unittest.TestCase):
             num += 1
 
     def test_all_reviews(self):
-        api = udemy.Udemy(auths.udemy_api)
+        api = udemy.Api(auths.udemy_api)
         reviews = api.get_all_reviews()
         self.assertIsNotNone(reviews)
         num = 0
@@ -100,7 +101,7 @@ class MyTestCase(unittest.TestCase):
         pass
 
     def test_questions(self):
-        api = udemy.Udemy(auths.udemy_api)
+        api = udemy.Api(auths.udemy_api)
         questions = api.get_all_questions(status='unanswered', ordering='oldest')
         self.assertIsNotNone(questions)
         num = 0
@@ -113,7 +114,7 @@ class MyTestCase(unittest.TestCase):
             num += 1
 
     def test_course_questions(self):
-        api = udemy.Udemy(auths.udemy_api)
+        api = udemy.Api(auths.udemy_api)
         courses = api.get_all_courses(ordering='popularity')
         self.assertIsNotNone(courses)
         num = 0
@@ -129,7 +130,7 @@ class MyTestCase(unittest.TestCase):
             num += 1
 
     def test_messages(self):
-        api = udemy.Udemy(auths.udemy_api)
+        api = udemy.Api(auths.udemy_api)
         threads = api.get_message_threads()
         self.assertIsNotNone(threads)
         for thread in threads:
