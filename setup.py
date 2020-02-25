@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="udemy-python",
-    version="0.0.1",
+    version="0.0.2",
     author="Anthony Ebiner",
     author_email="anthonyebiner@gmail.com",
     description="A python wrapper for the Udemy Instructor API",
