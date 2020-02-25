@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="python-udemy",
+    name="udemy-python",
     version="0.0.1",
     author="Anthony Ebiner",
     author_email="anthonyebiner@gmail.com",

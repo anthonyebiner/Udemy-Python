@@ -1,9 +1,9 @@
-# **PYTHON-UDEMY**
+# **UDEMY-PYTHON**
 _A better python wrapper for the Udemy Instructor API_
 
 ## Install
 Install  
-`$ pip install python-udemy`
+`$ pip install udemy-python`
 
 Use  
 `>>> from udemy import Api`
