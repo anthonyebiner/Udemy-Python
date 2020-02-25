@@ -1,6 +1,5 @@
 import unittest
 import udemy
-import auths
 
 
 class MyTestCase(unittest.TestCase):
