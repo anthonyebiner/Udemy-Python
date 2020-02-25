@@ -202,7 +202,8 @@ class Api:
     def post_question_reply(self, course_id, question_id, body):
         data = {"body": body}
         response = requests.post(
-            'https://www.udemy.com/instructor-api/v1/courses/{}/questions/{}/replies'.format(course_id, question_id),
+            "https://www.udemy.com/instructor-api/v1/courses/{}/questions/{}/replies"
+            "?fields%5Banswer%5D=@all&fields%5Buser%5D=@all".format(course_id, question_id),
             headers=self._auth,
             data=json.dumps(data))
         if response.status_code != 201:
