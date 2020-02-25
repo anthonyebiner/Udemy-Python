@@ -20,20 +20,20 @@ Here's a few examples of ways you can use this wrapper.
 ### Courses
 Here's a simple script to get all the unanswered questions from each course.
 
-`for course in udemy_api.get_all_courses():
-    print("Getting questions for", course.title)
-    for question in course.get_questions(status="unanswered"):
-        print("Unanswered question from", question.user.title)
-        print(question.title)
-        print(question.content)`
+    for course in udemy_api.get_all_courses():
+        print("Getting questions for", course.title)
+        for question in course.get_questions(status="unanswered"):
+            print("Unanswered question from", question.user.title)
+            print(question.title)
+            print(question.content)
         
 ### Reviews
 Or to get all your bad reviews.
 
-`for review in udemy_api.get_all_reviews(stars=[1, 2, 3], page_size=100):
-    print("\nBad review from", review.user.name, ":(")
-    print(review.stars, "stars")
-    print(review.content)`
+    for review in udemy_api.get_all_reviews(stars=[1, 2, 3], page_size=100):
+        print("\nBad review from", review.user.name, ":(")
+        print(review.stars, "stars")
+        print(review.content)
     
 
 ### Everything Else
